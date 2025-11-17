@@ -1,0 +1,3272 @@
+openapi: 3.0.3
+info:
+  title: 演出票务系统API
+  description: 演出票务系统完整API接口文档，包含C端、B端、运营后台、总代票务系统的所有接口
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api@ticketing.com
+
+servers:
+  - url: https://api.ticketing.com
+    description: 生产环境
+  - url: https://test-api.ticketing.com
+    description: 测试环境
+  - url: http://localhost:8080
+    description: 本地开发环境
+
+tags:
+  - name: 用户服务
+    description: 用户注册、登录、信息管理相关接口
+  - name: 项目服务
+    description: 演出项目、场次、票档相关接口
+  - name: 订单服务
+    description: 订单创建、查询、管理相关接口
+  - name: 支付服务
+    description: 支付、退款相关接口
+  - name: 库存服务
+    description: 库存管理、座位分配相关接口
+  - name: 营销服务
+    description: 优惠券、促销活动相关接口
+  - name: 搜索服务
+    description: 项目搜索、筛选相关接口
+  - name: 通知服务
+    description: 短信、邮件、站内消息相关接口
+  - name: B端管理
+    description: 商家后台管理相关接口
+  - name: 运营后台
+    description: 运营后台管理相关接口
+  - name: 总代票务
+    description: 总代票务系统相关接口
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ==================== 用户服务 ====================
+  /api/user/send-sms:
+    post:
+      tags: [用户服务]
+      summary: 发送短信验证码
+      description: 发送短信验证码（注册、登录、找回密码）
+      operationId: sendSms
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, type]
+              properties:
+                phone:
+                  type: string
+                  description: 手机号
+                  example: "13800138000"
+                type:
+                  type: string
+                  enum: [register, login, reset]
+                  description: 验证码类型
+                  example: register
+      responses:
+        '200':
+          description: 发送成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/register:
+    post:
+      tags: [用户服务]
+      summary: 用户注册
+      description: 手机号注册
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password, code]
+              properties:
+                phone:
+                  type: string
+                  description: 手机号
+                  example: "13800138000"
+                password:
+                  type: string
+                  description: 密码
+                  minLength: 6
+                  maxLength: 20
+                  example: "123456"
+                code:
+                  type: string
+                  description: 短信验证码
+                  example: "123456"
+                nickname:
+                  type: string
+                  description: 昵称
+                  example: "用户昵称"
+      responses:
+        '200':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponse'
+
+  /api/user/login:
+    post:
+      tags: [用户服务]
+      summary: 用户登录
+      description: 手机号密码登录
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                  example: "13800138000"
+                password:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponse'
+
+  /api/user/profile:
+    get:
+      tags: [用户服务]
+      summary: 获取用户信息
+      description: 获取当前登录用户信息
+      operationId: getUserProfile
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserProfile'
+    put:
+      tags: [用户服务]
+      summary: 更新用户信息
+      operationId: updateUserProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nickname:
+                  type: string
+                avatar:
+                  type: string
+                gender:
+                  type: integer
+                  enum: [0, 1, 2]
+                birthday:
+                  type: string
+                  format: date
+                cityId:
+                  type: integer
+                  format: int64
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserProfile'
+
+  /api/user/addresses:
+    get:
+      tags: [用户服务]
+      summary: 获取收货地址列表
+      operationId: getUserAddresses
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Address'
+    post:
+      tags: [用户服务]
+      summary: 添加收货地址
+      operationId: addUserAddress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressRequest'
+      responses:
+        '200':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Address'
+
+  /api/user/real-names:
+    get:
+      tags: [用户服务]
+      summary: 获取实名信息列表
+      operationId: getUserRealNames
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RealNameInfo'
+    post:
+      tags: [用户服务]
+      summary: 添加实名信息
+      operationId: addUserRealName
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [realName, idCard]
+              properties:
+                realName:
+                  type: string
+                  example: "张三"
+                idCard:
+                  type: string
+                  example: "110101199001011234"
+                isDefault:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RealNameInfo'
+
+  # ==================== 项目服务 ====================
+  /api/cities:
+    get:
+      tags: [项目服务]
+      summary: 获取城市列表
+      operationId: getCities
+      security: []
+      parameters:
+        - name: isHot
+          in: query
+          description: 是否只查询热门城市
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/City'
+
+  /api/categories:
+    get:
+      tags: [项目服务]
+      summary: 获取类目列表
+      operationId: getCategories
+      security: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+
+  /api/events:
+    get:
+      tags: [项目服务]
+      summary: 获取项目列表
+      description: 获取演出项目列表，支持筛选和分页
+      operationId: getEvents
+      security: []
+      parameters:
+        - name: cityId
+          in: query
+          required: true
+          description: 城市ID
+          schema:
+            type: integer
+            format: int64
+        - name: categoryId
+          in: query
+          description: 类目ID
+          schema:
+            type: integer
+            format: int64
+        - name: minPrice
+          in: query
+          description: 最低价格
+          schema:
+            type: number
+            format: decimal
+        - name: maxPrice
+          in: query
+          description: 最高价格
+          schema:
+            type: number
+            format: decimal
+        - name: startDate
+          in: query
+          description: 开始日期
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: 结束日期
+          schema:
+            type: string
+            format: date
+        - name: sortBy
+          in: query
+          description: 排序字段
+          schema:
+            type: string
+            enum: [time, price, hot, sales]
+        - name: page
+          in: query
+          description: 页码
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          description: 每页数量
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PagedEventList'
+    post:
+      tags: [B端管理]
+      summary: 创建项目
+      description: 商家创建演出项目
+      operationId: createEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EventDetail'
+
+  /api/events/{eventId}:
+    get:
+      tags: [项目服务]
+      summary: 获取项目详情
+      operationId: getEventDetail
+      security: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: 项目ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/EventDetail'
+    put:
+      tags: [B端管理]
+      summary: 更新项目
+      operationId: updateEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/events/{eventId}/sessions:
+    get:
+      tags: [项目服务]
+      summary: 获取项目场次列表
+      operationId: getEventSessions
+      security: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Session'
+    post:
+      tags: [B端管理]
+      summary: 创建场次
+      operationId: createSession
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [startTime, endTime]
+              properties:
+                startTime:
+                  type: string
+                  format: date-time
+                  example: "2024-06-01T19:30:00"
+                endTime:
+                  type: string
+                  format: date-time
+                  example: "2024-06-01T21:30:00"
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Session'
+
+  /api/sessions/{sessionId}/ticket-tiers:
+    get:
+      tags: [项目服务]
+      summary: 获取场次票档列表
+      operationId: getSessionTicketTiers
+      security: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/TicketTier'
+    post:
+      tags: [B端管理]
+      summary: 创建票档
+      operationId: createTicketTier
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price, totalStock]
+              properties:
+                name:
+                  type: string
+                  example: "VIP区"
+                price:
+                  type: number
+                  format: decimal
+                  example: 680.00
+                totalStock:
+                  type: integer
+                  example: 100
+                seatArea:
+                  type: string
+                  example: "A区1-5排"
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/TicketTier'
+
+  /api/events/{eventId}/wishlist:
+    post:
+      tags: [项目服务]
+      summary: 添加想看
+      operationId: addToWishlist
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags: [项目服务]
+      summary: 取消想看
+      operationId: removeFromWishlist
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/user/wishlist:
+    get:
+      tags: [项目服务]
+      summary: 获取想看列表
+      operationId: getWishlist
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/EventSummary'
+
+  # ==================== 订单服务 ====================
+  /api/orders:
+    get:
+      tags: [订单服务]
+      summary: 获取订单列表
+      operationId: getOrders
+      parameters:
+        - name: status
+          in: query
+          description: 订单状态
+          schema:
+            type: string
+            enum: [pending, paid, cancelled, refunding, refunded]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PagedOrderList'
+    post:
+      tags: [订单服务]
+      summary: 创建订单
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetail'
+
+  /api/orders/{orderId}:
+    get:
+      tags: [订单服务]
+      summary: 获取订单详情
+      operationId: getOrderDetail
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetail'
+
+  /api/orders/{orderId}/cancel:
+    post:
+      tags: [订单服务]
+      summary: 取消订单
+      operationId: cancelOrder
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/refunds:
+    post:
+      tags: [订单服务]
+      summary: 申请退款
+      operationId: createRefund
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, reason]
+              properties:
+                orderId:
+                  type: integer
+                  format: int64
+                orderItemIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                reason:
+                  type: string
+                  example: "临时有事无法参加"
+      responses:
+        '200':
+          description: 申请成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Refund'
+
+  /api/refunds/{refundId}:
+    get:
+      tags: [订单服务]
+      summary: 获取退款详情
+      operationId: getRefundDetail
+      parameters:
+        - name: refundId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Refund'
+
+  /api/tickets:
+    get:
+      tags: [订单服务]
+      summary: 获取电子票列表（票夹）
+      operationId: getTickets
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Ticket'
+
+  # ==================== 支付服务 ====================
+  /api/payment/create:
+    post:
+      tags: [支付服务]
+      summary: 创建支付订单
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, paymentMethod]
+              properties:
+                orderId:
+                  type: integer
+                  format: int64
+                paymentMethod:
+                  type: string
+                  enum: [alipay, wechat, bank_card, apple_pay]
+                  example: alipay
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaymentInfo'
+
+  /api/payment/{paymentId}/status:
+    get:
+      tags: [支付服务]
+      summary: 查询支付状态
+      operationId: getPaymentStatus
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            enum: [pending, success, failed, cancelled]
+                          paidAt:
+                            type: string
+                            format: date-time
+
+  /api/payment/alipay/callback:
+    post:
+      tags: [支付服务]
+      summary: 支付宝支付回调
+      operationId: alipayCallback
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 处理成功
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "success"
+
+  /api/payment/wechat/callback:
+    post:
+      tags: [支付服务]
+      summary: 微信支付回调
+      operationId: wechatCallback
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 处理成功
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ==================== 库存服务 ====================
+  /api/inventory/check:
+    post:
+      tags: [库存服务]
+      summary: 检查库存可用性
+      operationId: checkInventory
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticketTierId, quantity]
+              properties:
+                ticketTierId:
+                  type: integer
+                  format: int64
+                quantity:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: 检查成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          available:
+                            type: boolean
+                          availableStock:
+                            type: integer
+
+  /api/seats/allocate:
+    post:
+      tags: [库存服务]
+      summary: 分配座位
+      operationId: allocateSeats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticketTierId, quantity]
+              properties:
+                ticketTierId:
+                  type: integer
+                  format: int64
+                quantity:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: 分配成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          seats:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Seat'
+                          lockToken:
+                            type: string
+                            description: 座位锁定令牌
+
+  /api/seats/lock:
+    post:
+      tags: [库存服务]
+      summary: 锁定座位
+      operationId: lockSeats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [seatIds]
+              properties:
+                seatIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+      responses:
+        '200':
+          description: 锁定成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/seats/unlock:
+    post:
+      tags: [库存服务]
+      summary: 释放座位
+      operationId: unlockSeats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lockToken]
+              properties:
+                lockToken:
+                  type: string
+      responses:
+        '200':
+          description: 释放成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ==================== 营销服务 ====================
+  /api/coupons:
+    get:
+      tags: [营销服务]
+      summary: 获取可领取优惠券列表
+      operationId: getAvailableCoupons
+      security: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Coupon'
+
+  /api/coupons/{couponId}/receive:
+    post:
+      tags: [营销服务]
+      summary: 领取优惠券
+      operationId: receiveCoupon
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 领取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserCoupon'
+
+  /api/user/coupons:
+    get:
+      tags: [营销服务]
+      summary: 获取用户优惠券列表
+      operationId: getUserCoupons
+      parameters:
+        - name: status
+          in: query
+          description: 优惠券状态
+          schema:
+            type: string
+            enum: [unused, used, expired]
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserCoupon'
+
+  /api/promotions/applicable:
+    get:
+      tags: [营销服务]
+      summary: 获取适用的促销活动
+      operationId: getApplicablePromotions
+      parameters:
+        - name: eventId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: amount
+          in: query
+          schema:
+            type: number
+            format: decimal
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Promotion'
+
+  # ==================== 搜索服务 ====================
+  /api/search/events:
+    get:
+      tags: [搜索服务]
+      summary: 搜索项目
+      operationId: searchEvents
+      security: []
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          description: 搜索关键词
+          schema:
+            type: string
+        - name: cityId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 搜索成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PagedEventList'
+
+  /api/search/suggest:
+    get:
+      tags: [搜索服务]
+      summary: 搜索建议
+      operationId: searchSuggest
+      security: []
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: string
+
+  /api/search/hot-keywords:
+    get:
+      tags: [搜索服务]
+      summary: 获取热门搜索词
+      operationId: getHotKeywords
+      security: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: string
+
+  # ==================== B端管理 ====================
+  /api/merchant/dashboard:
+    get:
+      tags: [B端管理]
+      summary: 获取商家首页看板数据
+      operationId: getMerchantDashboard
+      parameters:
+        - name: dateRange
+          in: query
+          description: 日期范围
+          schema:
+            type: string
+            enum: [today, week, month]
+            default: today
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MerchantDashboard'
+
+  /api/merchant/events:
+    get:
+      tags: [B端管理]
+      summary: 获取商家项目列表
+      operationId: getMerchantEvents
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, on_sale, sold_out, ended, cancelled]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PagedEventList'
+
+  /api/merchant/orders:
+    get:
+      tags: [B端管理]
+      summary: 获取商家订单列表
+      operationId: getMerchantOrders
+      parameters:
+        - name: eventId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PagedOrderList'
+
+  /api/merchant/orders/export:
+    get:
+      tags: [B端管理]
+      summary: 导出订单数据
+      operationId: exportMerchantOrders
+      parameters:
+        - name: eventId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 导出成功
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+
+  /api/merchant/offline-sale:
+    post:
+      tags: [B端管理]
+      summary: 后台售票
+      operationId: offlineSale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eventId, sessionId, ticketTierId, quantity, buyerName, buyerPhone]
+              properties:
+                eventId:
+                  type: integer
+                  format: int64
+                sessionId:
+                  type: integer
+                  format: int64
+                ticketTierId:
+                  type: integer
+                  format: int64
+                quantity:
+                  type: integer
+                buyerName:
+                  type: string
+                buyerPhone:
+                  type: string
+                realName:
+                  type: string
+                idCard:
+                  type: string
+                paymentMethod:
+                  type: string
+                  enum: [cash, card, transfer]
+      responses:
+        '200':
+          description: 售票成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/OrderDetail'
+
+  /api/merchant/refunds:
+    get:
+      tags: [B端管理]
+      summary: 获取退款申请列表
+      operationId: getMerchantRefunds
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, completed]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Refund'
+
+  /api/merchant/refunds/{refundId}/approve:
+    post:
+      tags: [B端管理]
+      summary: 审核退款申请
+      operationId: approveRefund
+      parameters:
+        - name: refundId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approved]
+              properties:
+                approved:
+                  type: boolean
+                remark:
+                  type: string
+      responses:
+        '200':
+          description: 审核成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/merchant/settlement:
+    get:
+      tags: [B端管理]
+      summary: 获取结算列表
+      operationId: getMerchantSettlement
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, settled, withdrawn]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SettlementList'
+
+  /api/merchant/settlement/withdraw:
+    post:
+      tags: [B端管理]
+      summary: 申请提现
+      operationId: withdrawSettlement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, accountInfo]
+              properties:
+                amount:
+                  type: number
+                  format: decimal
+                accountInfo:
+                  type: object
+                  properties:
+                    accountName:
+                      type: string
+                    accountNumber:
+                      type: string
+                    bankName:
+                      type: string
+      responses:
+        '200':
+          description: 申请成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  # ==================== 运营后台 ====================
+  /api/admin/users:
+    get:
+      tags: [运营后台]
+      summary: 获取用户列表
+      operationId: getAdminUsers
+      parameters:
+        - name: keyword
+          in: query
+          description: 搜索关键词（手机号、昵称、用户ID）
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, frozen]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/UserProfile'
+
+  /api/admin/users/{userId}/freeze:
+    post:
+      tags: [运营后台]
+      summary: 冻结/解冻用户
+      operationId: freezeUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [freeze]
+              properties:
+                freeze:
+                  type: boolean
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: 操作成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/admin/merchants:
+    get:
+      tags: [运营后台]
+      summary: 获取商家列表
+      operationId: getAdminMerchants
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, active, disabled]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/MerchantList'
+
+  /api/admin/merchants/{merchantId}/audit:
+    post:
+      tags: [运营后台]
+      summary: 审核商家
+      operationId: auditMerchant
+      parameters:
+        - name: merchantId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [approved]
+              properties:
+                approved:
+                  type: boolean
+                remark:
+                  type: string
+      responses:
+        '200':
+          description: 审核成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/admin/coupons:
+    get:
+      tags: [运营后台]
+      summary: 获取优惠券列表
+      operationId: getAdminCoupons
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          items:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Coupon'
+    post:
+      tags: [运营后台]
+      summary: 创建优惠券
+      operationId: createCoupon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCouponRequest'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Coupon'
+
+  /api/admin/banners:
+    get:
+      tags: [运营后台]
+      summary: 获取Banner列表
+      operationId: getAdminBanners
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Banner'
+    post:
+      tags: [运营后台]
+      summary: 创建Banner
+      operationId: createBanner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBannerRequest'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Banner'
+
+  /api/admin/settings/cities:
+    get:
+      tags: [运营后台]
+      summary: 获取城市列表（管理）
+      operationId: getAdminCities
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/City'
+    post:
+      tags: [运营后台]
+      summary: 添加城市
+      operationId: createCity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, pinyin]
+              properties:
+                name:
+                  type: string
+                  example: "北京"
+                pinyin:
+                  type: string
+                  example: "beijing"
+                areaCode:
+                  type: string
+                  example: "010"
+                isHot:
+                  type: boolean
+                  example: true
+                sortOrder:
+                  type: integer
+                  example: 1
+      responses:
+        '200':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/City'
+
+  /api/admin/settings/categories:
+    get:
+      tags: [运营后台]
+      summary: 获取类目列表（管理）
+      operationId: getAdminCategories
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+    post:
+      tags: [运营后台]
+      summary: 添加类目
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: "演唱会"
+                icon:
+                  type: string
+                  example: "https://cdn.example.com/icon.png"
+                sortOrder:
+                  type: integer
+                  example: 1
+      responses:
+        '200':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Category'
+
+  # ==================== 总代票务 ====================
+  /api/agent/dashboard:
+    get:
+      tags: [总代票务]
+      summary: 获取数据大屏数据
+      operationId: getAgentDashboard
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AgentDashboard'
+
+  /api/agent/seat-maps:
+    get:
+      tags: [总代票务]
+      summary: 获取座位图列表
+      operationId: getAgentSeatMaps
+      parameters:
+        - name: venueId
+          in: query
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SeatMap'
+    post:
+      tags: [总代票务]
+      summary: 创建座位图
+      operationId: createSeatMap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [venueId, name, config]
+              properties:
+                venueId:
+                  type: integer
+                  format: int64
+                name:
+                  type: string
+                  example: "主场馆座位图"
+                config:
+                  type: object
+                  description: 座位图配置JSON
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SeatMap'
+
+  /api/agent/seats/{sessionId}:
+    get:
+      tags: [总代票务]
+      summary: 获取场次座位详情
+      operationId: getAgentSeats
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, locked, sold]
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          seats:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Seat'
+                          statistics:
+                            type: object
+                            properties:
+                              total:
+                                type: integer
+                              available:
+                                type: integer
+                              locked:
+                                type: integer
+                              sold:
+                                type: integer
+
+  /api/agent/seats/batch-lock:
+    post:
+      tags: [总代票务]
+      summary: 批量锁定座位
+      operationId: batchLockSeats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [seatIds]
+              properties:
+                seatIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: 锁定成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/agent/tickets/print:
+    post:
+      tags: [总代票务]
+      summary: 打印纸质票
+      operationId: printTickets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderItemIds]
+              properties:
+                orderItemIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                templateId:
+                  type: integer
+                  format: int64
+      responses:
+        '200':
+          description: 打印成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/agent/allocation:
+    post:
+      tags: [总代票务]
+      summary: 配票给渠道
+      operationId: allocateTickets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ticketTierId, channel, quantity]
+              properties:
+                ticketTierId:
+                  type: integer
+                  format: int64
+                channel:
+                  type: string
+                  example: "线上渠道"
+                quantity:
+                  type: integer
+                  example: 50
+      responses:
+        '200':
+          description: 配票成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /api/agent/check-in/stats:
+    get:
+      tags: [总代票务]
+      summary: 获取检票统计
+      operationId: getCheckInStats
+      parameters:
+        - name: sessionId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          totalTickets:
+                            type: integer
+                          checkedIn:
+                            type: integer
+                          notCheckedIn:
+                            type: integer
+                          checkInRate:
+                            type: number
+                            format: decimal
+
+# ==================== Components ====================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 响应码（1000表示成功）
+          example: 1000
+        message:
+          type: string
+          description: 响应消息
+          example: "操作成功"
+        timestamp:
+          type: integer
+          format: int64
+          description: 时间戳
+          example: 1700000000000
+      required: [code, message, timestamp]
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          description: 刷新Token
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    WechatLoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/LoginResponse'
+        - type: object
+          properties:
+            isNew:
+              type: boolean
+              description: 是否新用户
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1001
+        phone:
+          type: string
+          example: "13800138000"
+        nickname:
+          type: string
+          example: "用户昵称"
+        avatar:
+          type: string
+          example: "https://cdn.example.com/avatar.jpg"
+        gender:
+          type: integer
+          enum: [0, 1, 2]
+          description: 0-未知，1-男，2-女
+        birthday:
+          type: string
+          format: date
+        cityId:
+          type: integer
+          format: int64
+        cityName:
+          type: string
+        status:
+          type: string
+          enum: [active, frozen]
+        createdAt:
+          type: string
+          format: date-time
+
+    Address:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        receiverName:
+          type: string
+          example: "张三"
+        receiverPhone:
+          type: string
+          example: "13800138000"
+        province:
+          type: string
+          example: "北京市"
+        city:
+          type: string
+          example: "北京市"
+        district:
+          type: string
+          example: "朝阳区"
+        detailAddress:
+          type: string
+          example: "某某街道123号"
+        postalCode:
+          type: string
+          example: "100000"
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    AddressRequest:
+      type: object
+      required: [receiverName, receiverPhone, province, city, district, detailAddress]
+      properties:
+        receiverName:
+          type: string
+        receiverPhone:
+          type: string
+        province:
+          type: string
+        city:
+          type: string
+        district:
+          type: string
+        detailAddress:
+          type: string
+        postalCode:
+          type: string
+        isDefault:
+          type: boolean
+
+    RealNameInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        realName:
+          type: string
+          example: "张三"
+        idCard:
+          type: string
+          example: "110101********1234"
+          description: 脱敏后的身份证号
+        isDefault:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    City:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: "北京"
+        pinyin:
+          type: string
+          example: "beijing"
+        areaCode:
+          type: string
+          example: "010"
+        isHot:
+          type: boolean
+        sortOrder:
+          type: integer
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: "演唱会"
+        icon:
+          type: string
+        sortOrder:
+          type: integer
+
+    EventSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: "周杰伦演唱会"
+        coverImage:
+          type: string
+        categoryName:
+          type: string
+        cityName:
+          type: string
+        venueName:
+          type: string
+        minPrice:
+          type: number
+          format: decimal
+        maxPrice:
+          type: number
+          format: decimal
+        startTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [draft, on_sale, sold_out, ended, cancelled]
+        tags:
+          type: array
+          items:
+            type: string
+        wishlistCount:
+          type: integer
+          description: 想看人数
+
+    EventDetail:
+      allOf:
+        - $ref: '#/components/schemas/EventSummary'
+        - type: object
+          properties:
+            merchantId:
+              type: integer
+              format: int64
+            description:
+              type: string
+              description: 项目详情
+            notice:
+              type: string
+              description: 购票须知
+            duration:
+              type: integer
+              description: 演出时长（分钟）
+            images:
+              type: array
+              items:
+                type: string
+            venue:
+              $ref: '#/components/schemas/Venue'
+            sessions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Session'
+            isWishlisted:
+              type: boolean
+              description: 当前用户是否已添加想看
+
+    Venue:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: "国家体育场"
+        address:
+          type: string
+        latitude:
+          type: number
+          format: decimal
+        longitude:
+          type: number
+          format: decimal
+        capacity:
+          type: integer
+
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        eventId:
+          type: integer
+          format: int64
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [on_sale, sold_out, ended, cancelled]
+        ticketTiers:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketTier'
+
+    TicketTier:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sessionId:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: "VIP区"
+        price:
+          type: number
+          format: decimal
+          example: 680.00
+        totalStock:
+          type: integer
+        availableStock:
+          type: integer
+        seatArea:
+          type: string
+        status:
+          type: string
+          enum: [on_sale, sold_out]
+
+    Seat:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sessionId:
+          type: integer
+          format: int64
+        ticketTierId:
+          type: integer
+          format: int64
+        row:
+          type: string
+          example: "A"
+        number:
+          type: string
+          example: "10"
+        status:
+          type: string
+          enum: [available, locked, sold]
+        lockedUntil:
+          type: string
+          format: date-time
+
+    CreateEventRequest:
+      type: object
+      required: [name, categoryId, cityId, venueId, coverImage]
+      properties:
+        name:
+          type: string
+          example: "周杰伦演唱会"
+        categoryId:
+          type: integer
+          format: int64
+        cityId:
+          type: integer
+          format: int64
+        venueId:
+          type: integer
+          format: int64
+        coverImage:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+        notice:
+          type: string
+        duration:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+
+    PagedEventList:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventSummary'
+
+    CreateOrderRequest:
+      type: object
+      required: [eventId, sessionId, items]
+      properties:
+        eventId:
+          type: integer
+          format: int64
+        sessionId:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            type: object
+            required: [ticketTierId, quantity, buyerName, buyerPhone]
+            properties:
+              ticketTierId:
+                type: integer
+                format: int64
+              seatIds:
+                type: array
+                items:
+                  type: integer
+                  format: int64
+              quantity:
+                type: integer
+              buyerName:
+                type: string
+              buyerPhone:
+                type: string
+              realNameId:
+                type: integer
+                format: int64
+        deliveryMethod:
+          type: string
+          enum: [electronic, express]
+          default: electronic
+        addressId:
+          type: integer
+          format: int64
+        couponId:
+          type: integer
+          format: int64
+
+    OrderDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderNo:
+          type: string
+          example: "ORD202401010001"
+        userId:
+          type: integer
+          format: int64
+        event:
+          $ref: '#/components/schemas/EventSummary'
+        session:
+          $ref: '#/components/schemas/Session'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        totalAmount:
+          type: number
+          format: decimal
+        serviceFee:
+          type: number
+          format: decimal
+        deliveryFee:
+          type: number
+          format: decimal
+        discountAmount:
+          type: number
+          format: decimal
+        payableAmount:
+          type: number
+          format: decimal
+        status:
+          type: string
+          enum: [pending, paid, cancelled, refunding, refunded]
+        paymentMethod:
+          type: string
+        deliveryMethod:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        createdAt:
+          type: string
+          format: date-time
+        paidAt:
+          type: string
+          format: date-time
+        expireAt:
+          type: string
+          format: date-time
+          description: 订单过期时间
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        ticketTier:
+          $ref: '#/components/schemas/TicketTier'
+        seat:
+          $ref: '#/components/schemas/Seat'
+        price:
+          type: number
+          format: decimal
+        buyerName:
+          type: string
+        buyerPhone:
+          type: string
+        ticketCode:
+          type: string
+          description: 电子票码
+        status:
+          type: string
+          enum: [valid, used, refunded]
+
+    PagedOrderList:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderDetail'
+
+    Refund:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderId:
+          type: integer
+          format: int64
+        orderItemIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        refundAmount:
+          type: number
+          format: decimal
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected, completed]
+        remark:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderItemId:
+          type: integer
+          format: int64
+        event:
+          $ref: '#/components/schemas/EventSummary'
+        session:
+          $ref: '#/components/schemas/Session'
+        seat:
+          $ref: '#/components/schemas/Seat'
+        ticketCode:
+          type: string
+        qrCode:
+          type: string
+          description: 二维码图片URL
+        status:
+          type: string
+          enum: [valid, used, refunded]
+
+    PaymentInfo:
+      type: object
+      properties:
+        paymentId:
+          type: integer
+          format: int64
+        paymentNo:
+          type: string
+        paymentMethod:
+          type: string
+        amount:
+          type: number
+          format: decimal
+        paymentParams:
+          type: object
+          description: 第三方支付参数
+        expireAt:
+          type: string
+          format: date-time
+
+    Coupon:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: "满300减50"
+        type:
+          type: string
+          enum: [discount, cash, gift]
+        discountRate:
+          type: number
+          format: decimal
+          description: 折扣率（如0.8表示8折）
+        discountAmount:
+          type: number
+          format: decimal
+          description: 减免金额
+        minAmount:
+          type: number
+          format: decimal
+          description: 最低消费金额
+        totalQuantity:
+          type: integer
+        receivedQuantity:
+          type: integer
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, inactive]
+        scope:
+          type: object
+          description: 适用范围
+          properties:
+            eventIds:
+              type: array
+              items:
+                type: integer
+                format: int64
+            categoryIds:
+              type: array
+              items:
+                type: integer
+                format: int64
+
+    UserCoupon:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        coupon:
+          $ref: '#/components/schemas/Coupon'
+        status:
+          type: string
+          enum: [unused, used, expired]
+        usedAt:
+          type: string
+          format: date-time
+        receivedAt:
+          type: string
+          format: date-time
+
+    CreateCouponRequest:
+      type: object
+      required: [name, type, minAmount, totalQuantity, validFrom, validTo]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [discount, cash, gift]
+        discountRate:
+          type: number
+          format: decimal
+        discountAmount:
+          type: number
+          format: decimal
+        minAmount:
+          type: number
+          format: decimal
+        totalQuantity:
+          type: integer
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        scope:
+          type: object
+          properties:
+            eventIds:
+              type: array
+              items:
+                type: integer
+                format: int64
+            categoryIds:
+              type: array
+              items:
+                type: integer
+                format: int64
+
+    Promotion:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+          example: "双11大促"
+        type:
+          type: string
+          enum: [full_reduction, discount, bundle]
+        rules:
+          type: object
+          description: 促销规则配置
+        eventIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, inactive]
+
+    Banner:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        imageUrl:
+          type: string
+        linkUrl:
+          type: string
+        sortOrder:
+          type: integer
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [active, inactive]
+
+    CreateBannerRequest:
+      type: object
+      required: [title, imageUrl, linkUrl]
+      properties:
+        title:
+          type: string
+        imageUrl:
+          type: string
+        linkUrl:
+          type: string
+        sortOrder:
+          type: integer
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+
+    MerchantDashboard:
+      type: object
+      properties:
+        todaySales:
+          type: number
+          format: decimal
+          description: 今日销售额
+        todayOrders:
+          type: integer
+          description: 今日订单量
+        totalSales:
+          type: number
+          format: decimal
+          description: 累计销售额
+        totalOrders:
+          type: integer
+          description: 累计订单量
+        onSaleEvents:
+          type: integer
+          description: 在售项目数
+        upcomingEvents:
+          type: integer
+          description: 即将开演项目数
+        endedEvents:
+          type: integer
+          description: 已结束项目数
+        pendingRefunds:
+          type: integer
+          description: 待处理退款数
+        salesTrend:
+          type: array
+          description: 销售趋势
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              sales:
+                type: number
+                format: decimal
+              orders:
+                type: integer
+        topEvents:
+          type: array
+          description: 热门项目排行
+          items:
+            type: object
+            properties:
+              event:
+                $ref: '#/components/schemas/EventSummary'
+              sales:
+                type: number
+                format: decimal
+              orders:
+                type: integer
+
+    SettlementList:
+      type: object
+      properties:
+        balance:
+          type: number
+          format: decimal
+          description: 可提现余额
+        frozenAmount:
+          type: number
+          format: decimal
+          description: 冻结金额
+        totalIncome:
+          type: number
+          format: decimal
+          description: 累计收入
+        settlements:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              period:
+                type: string
+                example: "2024-01"
+              orderCount:
+                type: integer
+              orderAmount:
+                type: number
+                format: decimal
+              serviceFee:
+                type: number
+                format: decimal
+              settlementAmount:
+                type: number
+                format: decimal
+              status:
+                type: string
+                enum: [pending, settled, withdrawn]
+              settledAt:
+                type: string
+                format: date-time
+
+    MerchantList:
+      type: object
+      properties:
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+              name:
+                type: string
+              contactName:
+                type: string
+              contactPhone:
+                type: string
+              status:
+                type: string
+                enum: [pending, active, disabled]
+              eventCount:
+                type: integer
+              totalSales:
+                type: number
+                format: decimal
+              createdAt:
+                type: string
+                format: date-time
+
+    SeatMap:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        venueId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        config:
+          type: object
+          description: 座位图配置JSON
+        createdAt:
+          type: string
+          format: date-time
+
+    AgentDashboard:
+      type: object
+      properties:
+        todaySales:
+          type: number
+          format: decimal
+        todayOrders:
+          type: integer
+        onlineUsers:
+          type: integer
+          description: 实时在线用户数
+        totalStock:
+          type: integer
+          description: 总库存
+        soldStock:
+          type: integer
+          description: 已售库存
+        remainingStock:
+          type: integer
+          description: 剩余库存
+        citySalesMap:
+          type: array
+          description: 各城市销售分布
+          items:
+            type: object
+            properties:
+              cityName:
+                type: string
+              sales:
+                type: number
+                format: decimal
+              orders:
+                type: integer
+        topEvents:
+          type: array
+          description: 项目销售排行
+          items:
+            type: object
+            properties:
+              eventName:
+                type: string
+              sales:
+                type: number
+                format: decimal
+              soldCount:
+                type: integer
+        recentOrders:
+          type: array
+          description: 实时订单流水
+          items:
+            type: object
+            properties:
+              orderNo:
+                type: string
+              eventName:
+                type: string
+              amount:
+                type: number
+                format: decimal
+              createdAt:
+                type: string
+                format: date-time
+        salesTrend:
+          type: array
+          description: 销售趋势曲线
+          items:
+            type: object
+            properties:
+              time:
+                type: string
+              sales:
+                type: number
+                format: decimal
